@@ -160,12 +160,27 @@ begin
 					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"8") AND (r.cur_ins(3 downto 0) = x"E") then
 					-- SHL Vx {, Vy} Set Vx = Vx SHL 1 (shift MSB into VF)
+					v.V(15) := unsigned("0000000" & r.V(to_integer(unsigned(r.cur_ins(11 downto 8))))(7)); -- Set carry in VF
+					v.V(to_integer(unsigned(r.cur_ins(11 downto 8)))) := unsigned(r.V(to_integer(unsigned(r.cur_ins(11 downto 8))))(6 downto 0) & "0");
+					v.PC := r.PC + 1;
+					v.state := FETCH;					
 				elsif (r.cur_ins(15 downto 12) = x"9") AND (r.cur_ins(3 downto 0) = x"0") then
 					-- SNE Vx, Vy Skip next instr if Vx != Vy
+					if ( r.V(to_integer(unsigned(r.cur_ins(11 downto 8)))) /= r.V(to_integer(unsigned(r.cur_ins(7 downto 4)))) ) then
+						v.PC := r.PC + 2;
+					else
+						v.PC := r.PC + 1;
+					end if;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"A") then
 					-- LD I, addr Set reg I = nnn
+					v.I := unsigned("0000" & r.cur_ins(11 downto 0));
+					v.PC := r.PC + 1;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"B") then
 					-- JP V0, addr Jump to location nnn + V0
+					v.PC := r.V(0) + resize(unsigned(r.cur_ins(11 downto 0)), v.PC'length);
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"C") then
 					-- RND Vx, byte Set Vx = random byte AND kk
 				elsif (r.cur_ins(15 downto 12) = x"D") then
@@ -176,14 +191,26 @@ begin
 					-- SKNP Vx, Skip next instruction if key = Vx is not pressed		
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"07") then 
 					-- LD Vx, DT, Vx = delay timer value
+					v.V(to_integer(unsigned(r.cur_ins(11 downto 8)))) := r.delay;
+					v.PC := r.PC + 1;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"0A") then
 					-- LD Vx, K, Wait for key press, store value in Vx
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"15") then
 					-- LD DT, Vx, Set delay timer = Vx
+					v.delay := r.V(to_integer(unsigned(r.cur_ins(11 downto 8))));
+					v.PC := r.PC + 1;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"18") then
 					-- LD ST, Vx, Set sound timer = Vx
+					v.sound := r.V(to_integer(unsigned(r.cur_ins(11 downto 8))));
+					v.PC := r.PC + 1;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"1E") then
 					-- ADD I, Vx, Set I = I + Vx
+					v.I := r.I + resize(r.V(to_integer(unsigned(r.cur_ins(11 downto 8)))), v.I'length);
+					v.PC := r.PC + 1;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"29") then			
 					-- LD F, Vx, Set I = location of sprite for digit Vx
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"33") then
