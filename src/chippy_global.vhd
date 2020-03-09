@@ -3,36 +3,42 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 
-package chippy_global is 
+package chippy_global is  
 	
-
+	type t_regfile is array (15 downto 0) of unsigned(7 downto 0);
+	type t_stack is array (15 downto 0) of unsigned(15 downto 0);
+	type t_cpu_state is (FETCH, EXECUTE);
 	
-	type regfile_type is record
+	-- CPU state
+	type cpu_state_type is record
 		
-		V0 : std_logic_vector(7 downto 0);
-		V1 : std_logic_vector(7 downto 0);
-		V2 : std_logic_vector(7 downto 0);
-		V3 : std_logic_vector(7 downto 0);
-		V4 : std_logic_vector(7 downto 0);
-		V5 : std_logic_vector(7 downto 0);
-		V6 : std_logic_vector(7 downto 0);
-		V7 : std_logic_vector(7 downto 0);
-		V8 : std_logic_vector(7 downto 0);
-		V9 : std_logic_vector(7 downto 0);
-		VA : std_logic_vector(7 downto 0);
-		VB : std_logic_vector(7 downto 0);
-		VC : std_logic_vector(7 downto 0);
-		VD : std_logic_vector(7 downto 0);
-		VE : std_logic_vector(7 downto 0);
-		VF : std_logic_vector(7 downto 0);
+		state : t_cpu_state; 
 		
-		I : std_logic_vector(15 downto 0);
+		cur_ins : std_logic_vector(15 downto 0);	 -- current instruction 2 byte instruction MSB first 
 		
-		delay : std_logic_vector(7 downto 0);
-		sound : std_logic_vector(7 downto 0);
+		V : t_regfile;		   
+		stack : t_stack;
 		
-		PC : std_logic_vector(15 downto 0);
-		SP : std_logic_vector(7 downto 0);
+		I : unsigned(15 downto 0);
+		
+		delay : unsigned(7 downto 0);
+		sound : unsigned(7 downto 0);
+		
+		PC : unsigned(15 downto 0);
+		SP : unsigned(7 downto 0);
+		
+		cycle_counter : unsigned(12 downto 0);
+		
+		mem_write_en : std_logic;
+		mem_addr : std_logic_vector(7 downto 0);
+		mem_data_in : std_logic_vector(7 downto 0);
+		mem_data_out : std_logic_vector(7 downto 0);
+		
+		alu_op : std_logic_vector(3 downto 0);
+		alu_A_in : unsigned(7 downto 0);
+		alu_B_in : unsigned(7 downto 0);
+		alu_out : unsigned(15 downto 0);
+		alu_carry : std_logic;
 		
 	end record;
 
