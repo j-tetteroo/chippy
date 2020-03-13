@@ -27,7 +27,7 @@ package chippy_global is
 		PC : unsigned(15 downto 0);
 		SP : unsigned(7 downto 0);
 		
-		cycle_counter : unsigned(12 downto 0);
+		cycle_counter : unsigned(11 downto 0);
 		
 		mem_write_en : std_logic;
 		mem_addr : std_logic_vector(7 downto 0);

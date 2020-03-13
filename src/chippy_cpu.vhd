@@ -7,14 +7,9 @@ use work.chippy_global.all;
 entity chippy_cpu is
 	port (clk : in std_logic;
 	reset : in std_logic;
-
-	alu_op : out std_logic_vector(3 downto 0);
-	alu_A_in : out unsigned(7 downto 0);
-	alu_B_in : out unsigned(7 downto 0);
-	alu_out : in unsigned(15 downto 0);
-	alu_carry : in std_logic;
 	
-	mem_addr : out std_logic_vector(12 downto 0);
+	mem_addr : out std_logic_vector(11 downto 0);
+	mem_we : out std_logic;
 	mem_data_in : in std_logic_vector(7 downto 0);
 	mem_data_out : out std_logic_vector(7 downto 0));
 end chippy_cpu;
@@ -43,10 +38,10 @@ begin
 						v.cycle_counter := v.cycle_counter - 1;
 					when 2 =>
 						v.cur_ins(15 downto 8) := mem_data_in;
-						mem_addr <= std_logic_vector(r.PC(12 downto 0) + 1);
+						mem_addr <= std_logic_vector(r.PC(11 downto 0) + 1);
 						v.cycle_counter := r.cycle_counter - 1;
 					when 3 =>
-						mem_addr <= std_logic_vector(r.PC(12 downto 0));
+						mem_addr <= std_logic_vector(r.PC(11 downto 0));
 						v.cycle_counter := r.cycle_counter - 1;
 					when others =>
 				end case;
@@ -217,11 +212,33 @@ begin
 					-- LD B, Vx, Set BCD representation of Vx in mem I, I+1 and I+2
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"55") then			
 					-- LD [I], Vx, Store registers V0 through Vx in memory starting at I
+					case to_integer(r.cycle_counter) is
+						when 0 =>
+							v.cycle_counter := resize(unsigned(r.cur_ins(11 downto 8)), v.cycle_counter'length) + 1;
+						when 1 => 
+							mem_addr <= std_logic_vector(v.I(11 downto 0) + unsigned(r.cur_ins(11 downto 8)) + 1 - r.cycle_counter);
+							mem_data_out <= std_logic_vector(r.V(to_integer(r.cycle_counter - 1)));
+							v.cycle_counter := r.cycle_counter - 1;
+							v.PC := r.PC + 1;
+							v.state := FETCH;
+						when others =>
+							mem_addr <= std_logic_vector(v.I(11 downto 0) + unsigned(r.cur_ins(11 downto 8)) + 1 - r.cycle_counter);
+							mem_data_out <= std_logic_vector(r.V(to_integer(r.cycle_counter - 1)));
+							v.cycle_counter := r.cycle_counter - 1;
+					end case;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"65") then
 					-- LD Vx, [I], Read registers V0 through Vx from memory starting at I
 				end if;
 				when others =>
 		end case;
+		
+		if (reset = '1') then
+			v.I := "0000000000000000";
+			v.state := FETCH;  
+			v.cycle_counter := to_unsigned(0, v.cycle_counter'length);
+		end if;	 	   
+		
+		rin <= v;
 	end process;
 	
 	synchronous : process(clk)
