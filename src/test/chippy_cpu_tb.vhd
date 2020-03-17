@@ -135,7 +135,25 @@ begin
 	assert mem_addr = x"008" report "Failed Mem Addr 3" severity error;
 	assert mem_data_out = x"86" report "Failed Mem Out 3" severity error;
 	wait until rising_edge(clk);
+	
+	-- Test CALL addr Call subroutine at nnn
+	wait until rising_edge(clk);	-- Fetch 0
+	wait until rising_edge(clk);	-- Fetch 3
+	mem_data_in <= x"24";
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"56";
+	wait until rising_edge(clk); 	-- Fetch 1
+	wait until rising_edge(clk); 	-- Execute
+	wait until rising_edge(clk); 	
 	wait for 1 ns;
+	assert mem_addr = x"456" report "Failed CALL" severity error;
+	-- Test JP addr Jump to location nnn
+	mem_data_in <= x"19";
+	wait until rising_edge(clk);
+	wait until rising_edge(clk);
+	mem_data_in <= x"87";
+	wait until rising_edge(clk);
+	wait until rising_edge(clk);
 	
 	report "#### TESTS COMPLETED ####";
     sim_finished <= true;
