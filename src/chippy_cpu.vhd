@@ -11,7 +11,10 @@ entity chippy_cpu is
 	mem_addr : out std_logic_vector(11 downto 0);
 	mem_we : out std_logic;
 	mem_data_in : in std_logic_vector(7 downto 0);
-	mem_data_out : out std_logic_vector(7 downto 0));
+	mem_data_out : out std_logic_vector(7 downto 0);
+	
+	keypad_in : in std_logic_vector(3 downto 0); 
+	keypad_pressed : in std_logic);
 end chippy_cpu;
 
 architecture behavioural of chippy_cpu is
@@ -188,15 +191,34 @@ begin
 					-- DRW Vx, Vy, nibble Display n-byte sprite at mem I at (Vx, Vy), VF = collision
 				elsif (r.cur_ins(15 downto 12) = x"E") and (r.cur_ins(7 downto 0) = x"9E") then
 					-- SKP Vx, Skip next instruction if key = Vx is pressed
+					if (unsigned(keypad_in) = r.V(idx_x)) then
+						v.PC := r.PC + 2;
+					else
+						v.PC := r.PC + 1;
+					end if;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"E") and (r.cur_ins(7 downto 0) = x"A1") then 
-					-- SKNP Vx, Skip next instruction if key = Vx is not pressed		
+					-- SKNP Vx, Skip next instruction if key = Vx is not pressed
+					if (unsigned(keypad_in) /= r.V(idx_x)) then
+						v.PC := r.PC + 2;
+					else
+						v.PC := r.PC + 1;
+					end if;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"07") then 
 					-- LD Vx, DT, Vx = delay timer value
 					v.V(idx_x) := r.delay;
 					v.PC := r.PC + 1;
 					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"0A") then
-					-- LD Vx, K, Wait for key press, store value in Vx
+					-- LD Vx, K, Wait for key press, store value in Vx	 
+					if (keypad_pressed = '1') then
+						v.V(idx_x) := resize(unsigned(keypad_in), v.V(idx_x)'length);
+						v.state := FETCH;
+						v.PC := r.PC + 1;
+					else   
+						v.state := EXECUTE;
+					end if;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"15") then
 					-- LD DT, Vx, Set delay timer = Vx
 					v.delay := r.V(idx_x);
@@ -217,7 +239,9 @@ begin
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"33") then
 					-- LD B, Vx, Set BCD representation of Vx in mem I, I+1 and I+2
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"55") then			
-					-- LD [I], Vx, Store registers V0 through Vx in memory starting at I
+					-- LD [I], Vx, Store registers V0 through Vx in memory starting at I  
+					
+					-- TODO: rewrite this with if statements
 					case to_integer(r.cycle_counter) is
 						when 0 =>
 							v.cycle_counter := resize(unsigned(r.cur_ins(11 downto 8)), v.cycle_counter'length) + 1; -- TODO: you can save one cycle here
