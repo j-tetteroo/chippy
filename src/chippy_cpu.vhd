@@ -40,18 +40,17 @@ begin
 				-- Fetch next instruction from memory (16-bit word)
 				case to_integer(r.cycle_counter) is
 					when 0 =>
-						v.cycle_counter := to_unsigned(3, v.cycle_counter'length);
+						v.cycle_counter := to_unsigned(2, v.cycle_counter'length);
+						mem_addr <= std_logic_vector(r.PC(11 downto 0));
 					when 1 =>
 						v.cur_ins(7 downto 0) := mem_data_in;
 						v.state := EXECUTE;
-						v.cycle_counter := v.cycle_counter - 1;
+						v.cycle_counter := r.cycle_counter - 1;
 					when 2 =>
 						v.cur_ins(15 downto 8) := mem_data_in;
 						mem_addr <= std_logic_vector(r.PC(11 downto 0) + 1);
 						v.cycle_counter := r.cycle_counter - 1;
 					when 3 =>
-						mem_addr <= std_logic_vector(r.PC(11 downto 0));
-						v.cycle_counter := r.cycle_counter - 1;
 					when others =>
 				end case;
 			when EXECUTE =>
