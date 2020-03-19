@@ -50,7 +50,7 @@ begin
 						mem_addr <= std_logic_vector(r.PC(11 downto 0) + 1);
 						v.cycle_counter := r.cycle_counter - 1;
 					when 3 =>
-						mem_addr <= std_logic_vector(r.PC(11 downto 0));	 --TODO: optimize this cycle out
+						mem_addr <= std_logic_vector(r.PC(11 downto 0));
 						v.cycle_counter := r.cycle_counter - 1;
 					when others =>
 				end case;
@@ -191,7 +191,7 @@ begin
 					-- DRW Vx, Vy, nibble Display n-byte sprite at mem I at (Vx, Vy), VF = collision
 				elsif (r.cur_ins(15 downto 12) = x"E") and (r.cur_ins(7 downto 0) = x"9E") then
 					-- SKP Vx, Skip next instruction if key = Vx is pressed
-					if (unsigned(keypad_in) = r.V(idx_x)) then
+					if ((unsigned(keypad_in) = r.V(idx_x)) and (keypad_pressed = '1')) then
 						v.PC := r.PC + 2;
 					else
 						v.PC := r.PC + 1;
@@ -199,7 +199,7 @@ begin
 					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"E") and (r.cur_ins(7 downto 0) = x"A1") then 
 					-- SKNP Vx, Skip next instruction if key = Vx is not pressed
-					if (unsigned(keypad_in) /= r.V(idx_x)) then
+					if ((unsigned(keypad_in) /= r.V(idx_x)) or (keypad_pressed = '0')) then
 						v.PC := r.PC + 2;
 					else
 						v.PC := r.PC + 1;
