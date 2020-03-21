@@ -50,7 +50,6 @@ begin
 						v.cur_ins(15 downto 8) := mem_data_in;
 						mem_addr <= std_logic_vector(r.PC(11 downto 0) + 1);
 						v.cycle_counter := r.cycle_counter - 1;
-					when 3 =>
 					when others =>
 				end case;
 			when EXECUTE =>
@@ -60,9 +59,9 @@ begin
 					-- Set counter = 64*32
 					-- Clear bits of framebuffer
 				elsif (r.cur_ins = x"00EE") then
-					-- RET return from subroutine 
-					v.PC := r.stack(to_integer(r.SP));
+					-- RET return from subroutine 	  
 					v.SP := r.SP - 1;
+					v.PC := r.stack(to_integer(v.SP));
 					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"1") then
 					-- JP addr Jump to location nnn	 
@@ -71,7 +70,7 @@ begin
 				elsif (r.cur_ins(15 downto 12) = x"2") then
 					-- CALL addr Call subroutine at nnn	  
 					v.SP := r.SP + 1;
-					v.stack(to_integer(v.SP)) := r.PC;
+					v.stack(to_integer(r.SP)) := r.PC;
 					v.PC :=  resize(unsigned(r.cur_ins(11 downto 0)), v.PC'length);
 					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"3") then
@@ -239,22 +238,21 @@ begin
 					-- LD B, Vx, Set BCD representation of Vx in mem I, I+1 and I+2
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"55") then			
 					-- LD [I], Vx, Store registers V0 through Vx in memory starting at I  
-					
-					-- TODO: rewrite this with if statements
-					case to_integer(r.cycle_counter) is
-						when 0 =>
-							v.cycle_counter := resize(unsigned(r.cur_ins(11 downto 8)), v.cycle_counter'length) + 1; -- TODO: you can save one cycle here
-						when 1 => 
-							mem_addr <= std_logic_vector(v.I(11 downto 0) + unsigned(r.cur_ins(11 downto 8)) + 1 - r.cycle_counter);
-							mem_data_out <= std_logic_vector(r.V(to_integer(r.cycle_counter - 1)));
-							v.cycle_counter := r.cycle_counter - 1;
-							v.PC := r.PC + 1;
-							v.state := FETCH;
-						when others =>
-							mem_addr <= std_logic_vector(v.I(11 downto 0) + unsigned(r.cur_ins(11 downto 8)) + 1 - r.cycle_counter);
-							mem_data_out <= std_logic_vector(r.V(to_integer(r.cycle_counter - 1)));
-							v.cycle_counter := r.cycle_counter - 1;
-					end case;
+					if (r.cycle_counter = 0) then
+						v.cycle_counter := resize(unsigned(r.cur_ins(11 downto 8)), v.cycle_counter'length);
+						mem_addr <= std_logic_vector(v.I(11 downto 0));
+						mem_data_out <= std_logic_vector(r.V(idx_x));
+					elsif (r.cycle_counter = 1) then  
+						mem_addr <= std_logic_vector(v.I(11 downto 0) + unsigned(r.cur_ins(11 downto 8)));
+						mem_data_out <= std_logic_vector(r.V(0));
+						v.cycle_counter := r.cycle_counter - 1;
+						v.PC := r.PC + 1;
+						v.state := FETCH;
+					else
+						mem_addr <= std_logic_vector(v.I(11 downto 0) + unsigned(r.cur_ins(11 downto 8)) - r.cycle_counter + 1);
+						mem_data_out <= std_logic_vector(r.V(to_integer(r.cycle_counter - 1)));
+						v.cycle_counter := r.cycle_counter - 1;		
+					end if;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"65") then
 					-- LD Vx, [I], Read registers V0 through Vx from memory starting at I
 				end if;
@@ -262,6 +260,7 @@ begin
 		end case;
 		
 		if (reset = '1') then
+			v.cur_ins := x"0000";
 			v.I := "0000000000000000";
 			v.PC := x"0000";
 			v.SP := x"00";
