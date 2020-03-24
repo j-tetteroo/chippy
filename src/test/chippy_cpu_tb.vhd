@@ -299,8 +299,74 @@ begin
 	
 	assert mem_addr = x"321" report "Failed JP V0+nnn" severity error;
 	
-	-- Test SKP Vx, Skip next instruction if key = Vx is pressed
+	-- Test SKP Vx, Skip next instruction if key = Vx is pressed  
+	-- V3 = 8, PC = 0x321
+	wait until rising_edge(clk);	-- Fetch 0
+	keypad_in <= x"8";
+	keypad_pressed <= '1';
+	mem_data_in <= x"E3";	
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"9E";			
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	wait for 1 ns;
+	assert mem_addr = x"323" report "Failed SKP 1" severity error;
 	
+	wait until rising_edge(clk);	-- Fetch 0
+	keypad_in <= x"8";
+	keypad_pressed <= '0';			-- No key pressed
+	mem_data_in <= x"E3";	
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"9E";			
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	wait for 1 ns;
+	assert mem_addr = x"324" report "Failed SKP 2" severity error;
+	
+	wait until rising_edge(clk);	-- Fetch 0
+	keypad_in <= x"9";	 			-- Different key pressed
+	keypad_pressed <= '1';	
+	mem_data_in <= x"E3";	
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"9E";			
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	wait for 1 ns;
+	assert mem_addr = x"325" report "Failed SKP 3" severity error;
+	
+	-- Test SKNP Vx, Skip next instruction if key = Vx is not pressed
+	wait until rising_edge(clk);	-- Fetch 0
+	keypad_in <= x"2";	 			-- Key = V2
+	keypad_pressed <= '1';	
+	mem_data_in <= x"E2";	
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"A1";			
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	wait for 1 ns;	
+	assert mem_addr = x"326" report "Failed SKNP 1" severity error;	
+	
+	wait until rising_edge(clk);	-- Fetch 0
+	keypad_in <= x"3";	 			-- Different key pressed
+	keypad_pressed <= '1';	
+	mem_data_in <= x"E2";	
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"A1";			
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	wait for 1 ns;	
+	assert mem_addr = x"328" report "Failed SKNP 2" severity error;	
+	
+	wait until rising_edge(clk);	-- Fetch 0
+	keypad_in <= x"2";	 			-- Key = V2
+	keypad_pressed <= '0';			-- No key press
+	mem_data_in <= x"E2";	
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"A1";			
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	wait for 1 ns;	
+	assert mem_addr = x"32A" report "Failed SKNP 3" severity error;
 	
 	report "#### TESTS COMPLETED ####";
     sim_finished <= true;
