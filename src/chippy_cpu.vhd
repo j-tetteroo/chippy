@@ -264,6 +264,7 @@ begin
 			v.I := "0000000000000000";
 			v.PC := x"0000";
 			v.SP := x"00";
+			v.delay := x"00";
 			v.state := FETCH;  
 			v.cycle_counter := to_unsigned(0, v.cycle_counter'length);
 		end if;	 	   

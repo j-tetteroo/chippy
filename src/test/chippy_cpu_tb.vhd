@@ -366,7 +366,29 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;	
-	assert mem_addr = x"32A" report "Failed SKNP 3" severity error;
+	assert mem_addr = x"32A" report "Failed SKNP 3" severity error;	
+	
+	-- Test LD DT, Vx, Set delay timer = Vx
+	wait until rising_edge(clk);	-- Fetch 0
+	mem_data_in <= x"F4";
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"15";
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	
+	-- TODO: assert delay timer = V4 = 0x15	
+	
+	-- LD Vx, DT, Vx = delay timer value
+	wait until rising_edge(clk);	-- Fetch 0
+	mem_data_in <= x"F5";
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"07";
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	
+	-- TODO: assert V5 = 0x15	  
+	
+	
 	
 	report "#### TESTS COMPLETED ####";
     sim_finished <= true;
