@@ -65,6 +65,8 @@ tb1: process
 		wait for DELTA / 4;
 		reset <= '0';
 	end procedure sync_reset;
+
+	alias cpu_r_state is << signal cpu.r : cpu_state_type>>; 
 	
 begin
 	report "#### START TESTS ####";
@@ -375,8 +377,8 @@ begin
 	mem_data_in <= x"15";
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
-	
-	-- TODO: assert delay timer = V4 = 0x15	
+	wait for 1 ns;
+	assert cpu_r_state.delay = x"15" report "Failed LD DT,Vx" severity error;	
 	
 	-- LD Vx, DT, Vx = delay timer value
 	wait until rising_edge(clk);	-- Fetch 0
@@ -385,8 +387,8 @@ begin
 	mem_data_in <= x"07";
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
-	
-	-- TODO: assert V5 = 0x15	  
+	wait for 1 ns;
+	assert cpu_r_state.V(5) = x"15" report "Failed LD Vx,DT" severity error;	  
 	
 	
 	
