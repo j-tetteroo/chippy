@@ -265,8 +265,10 @@ begin
 			v.PC := x"0000";
 			v.SP := x"00";
 			v.delay := x"00";
+			v.sound := x"00";
 			v.state := FETCH;  
 			v.cycle_counter := to_unsigned(0, v.cycle_counter'length);
+			-- TODO: Fully initialize state
 		end if;	 	   
 		
 		rin <= v;

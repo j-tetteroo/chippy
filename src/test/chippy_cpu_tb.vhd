@@ -380,7 +380,7 @@ begin
 	wait for 1 ns;
 	assert cpu_r_state.delay = x"15" report "Failed LD DT,Vx" severity error;	
 	
-	-- LD Vx, DT, Vx = delay timer value
+	-- Test LD Vx, DT, Vx = delay timer value
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"F5";
 	wait until rising_edge(clk);	-- Fetch 2
@@ -390,7 +390,15 @@ begin
 	wait for 1 ns;
 	assert cpu_r_state.V(5) = x"15" report "Failed LD Vx,DT" severity error;	  
 	
-	
+	-- Test LD ST, Vx, Set sound timer = Vx	 
+	wait until rising_edge(clk);	-- Fetch 0
+	mem_data_in <= x"F0";
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"18";
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute
+	wait for 1 ns;
+	assert cpu_r_state.sound = x"86" report "Failed LD ST,Vx" severity error;
 	
 	report "#### TESTS COMPLETED ####";
     sim_finished <= true;
