@@ -400,6 +400,33 @@ begin
 	wait for 1 ns;
 	assert cpu_r_state.sound = x"86" report "Failed LD ST,Vx" severity error;
 	
+	-- Test LD B, Vx, Set BCD representation of Vx in mem I, I+1 and I+2
+	wait until rising_edge(clk);	-- Fetch 0
+	mem_data_in <= x"F0";
+	wait until rising_edge(clk);	-- Fetch 2
+	mem_data_in <= x"33";
+	wait until rising_edge(clk);	-- Fetch 1
+	wait until rising_edge(clk);	-- Execute 0
+
+	wait for 1 ns;
+	assert mem_we = '1' report "Failed LD B, Vx 1 WE" severity error;
+	assert mem_addr = std_logic_vector(cpu_r_state.I(11 downto 0)) report "Failed LD B, Vx 1 ADDR" severity error;
+	assert mem_data_out = x"01" report "Failed LD B, Vx 1" severity error;
+	
+	wait until rising_edge(clk);	-- Execute 3
+	wait for 1 ns;
+	assert mem_we = '1' report "Failed LD B, Vx 2 WE" severity error;
+	assert mem_addr = std_logic_vector(cpu_r_state.I(11 downto 0) + 1) report "Failed LD B, Vx 2 ADDR" severity error;
+	assert mem_data_out = x"03" report "Failed LD B, Vx 2" severity error;
+	
+	wait until rising_edge(clk);	-- Execute 2
+	wait for 1 ns;
+	assert mem_we = '1' report "Failed LD B, Vx 3 WE" severity error;
+	assert mem_addr = std_logic_vector(cpu_r_state.I(11 downto 0) + 2) report "Failed LD B, Vx 3 ADDR" severity error;
+	assert mem_data_out = x"04" report "Failed LD B, Vx 3" severity error;	
+	wait until rising_edge(clk);	-- Execute 1
+	assert mem_we = '0' report "Failed LD B, Vx 4" severity error;
+	
 	report "#### TESTS COMPLETED ####";
     sim_finished <= true;
     wait;		

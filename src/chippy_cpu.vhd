@@ -4,6 +4,9 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.chippy_global.all;
 
+use work.chippy_randgen;
+use work.chippy_bcd_lut;
+
 entity chippy_cpu is
 	port (clk : in std_logic;
 	reset : in std_logic;
@@ -20,9 +23,22 @@ end chippy_cpu;
 architecture behavioural of chippy_cpu is
 
 	signal r, rin : cpu_state_type;
+	signal bcd_addr : std_logic_vector(7 downto 0) := (others => '0');
+	signal bcd_val : std_logic_vector(11 downto 0) := (others => '0');
+	
 
 
 begin
+	-- Random number generator
+	randgen : entity chippy_randgen
+		port map(clk => clk,
+			reset => reset,
+			rand_out => open);
+	
+	-- BCD lookup table
+	bcd_lut : entity chippy_bcd_lut
+		port map(addr => bcd_addr,
+			data => bcd_val);	
 	
 	combinatorial : process(reset, r)
 		variable v : cpu_state_type; 
@@ -49,6 +65,7 @@ begin
 					when 2 =>
 						v.cur_ins(15 downto 8) := mem_data_in;
 						mem_addr <= std_logic_vector(r.PC(11 downto 0) + 1);
+						-- TODO: does the PC need to be incremented?
 						v.cycle_counter := r.cycle_counter - 1;
 					when others =>
 				end case;
@@ -236,6 +253,30 @@ begin
 					-- LD F, Vx, Set I = location of sprite for digit Vx
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"33") then
 					-- LD B, Vx, Set BCD representation of Vx in mem I, I+1 and I+2
+					if (r.cycle_counter = 0) then
+						v.cycle_counter := to_unsigned(4, v.cycle_counter'length);
+						bcd_addr <= std_logic_vector(r.V(idx_x));
+					elsif (r.cycle_counter = 1) then
+						mem_we <= '0';
+						v.PC := r.PC + 1;
+						v.cycle_counter := r.cycle_counter - 1;
+						v.state := FETCH;
+					elsif (r.cycle_counter = 2) then
+						mem_addr <= std_logic_vector(r.I(11 downto 0) + 2);
+						mem_data_out <= ("0000" & bcd_val(3 downto 0));
+						mem_we <= '1';
+						v.cycle_counter := r.cycle_counter - 1;	
+					elsif (r.cycle_counter = 3) then
+						mem_addr <= std_logic_vector(r.I(11 downto 0) + 1);
+						mem_data_out <= ("0000" & bcd_val(7 downto 4));
+						mem_we <= '1';
+						v.cycle_counter := r.cycle_counter - 1;	
+					elsif (r.cycle_counter = 4) then 
+						mem_addr <= std_logic_vector(r.I(11 downto 0));
+						mem_data_out <= ("0000" & bcd_val(11 downto 8));
+						mem_we <= '1';
+						v.cycle_counter := r.cycle_counter - 1;	
+					end if;	
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"55") then			
 					-- LD [I], Vx, Store registers V0 through Vx in memory starting at I  
 					if (r.cycle_counter = 0) then
