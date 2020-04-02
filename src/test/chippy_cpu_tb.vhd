@@ -417,7 +417,7 @@ begin
 	wait for 1 ns;
 	assert mem_we = '1' report "Failed LD B, Vx 2 WE" severity error;
 	assert mem_addr = std_logic_vector(cpu_r_state.I(11 downto 0) + 1) report "Failed LD B, Vx 2 ADDR" severity error;
-	assert mem_data_out = x"03" report "Failed LD B, Vx 2" severity error;
+	assert mem_data_out = x"03" report "Fail ed LD B, Vx 2" severity error;
 	
 	wait until rising_edge(clk);	-- Execute 2
 	wait for 1 ns;
@@ -425,6 +425,7 @@ begin
 	assert mem_addr = std_logic_vector(cpu_r_state.I(11 downto 0) + 2) report "Failed LD B, Vx 3 ADDR" severity error;
 	assert mem_data_out = x"04" report "Failed LD B, Vx 3" severity error;	
 	wait until rising_edge(clk);	-- Execute 1
+	wait for 1 ns;
 	assert mem_we = '0' report "Failed LD B, Vx 4" severity error;
 	
 	report "#### TESTS COMPLETED ####";

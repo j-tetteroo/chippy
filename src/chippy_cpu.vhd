@@ -25,15 +25,14 @@ architecture behavioural of chippy_cpu is
 	signal r, rin : cpu_state_type;
 	signal bcd_addr : std_logic_vector(7 downto 0) := (others => '0');
 	signal bcd_val : std_logic_vector(11 downto 0) := (others => '0');
-	
-
+   	signal rnd_in : unsigned(7 downto 0) := (others => '0');
 
 begin
 	-- Random number generator
 	randgen : entity chippy_randgen
 		port map(clk => clk,
 			reset => reset,
-			rand_out => open);
+			rand_out => rnd_in);
 	
 	-- BCD lookup table
 	bcd_lut : entity chippy_bcd_lut
@@ -201,7 +200,10 @@ begin
 					v.PC := r.V(0) + resize(unsigned(r.cur_ins(11 downto 0)), v.PC'length);
 					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"C") then
-					-- RND Vx, byte Set Vx = random byte AND kk
+					-- RND Vx, byte Set Vx = random byte AND kk	 
+					v.V(idx_x) := rnd_in AND unsigned(r.cur_ins(7 downto 0));
+					v.PC := r.PC + 1;
+					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"D") then
 					-- DRW Vx, Vy, nibble Display n-byte sprite at mem I at (Vx, Vy), VF = collision
 				elsif (r.cur_ins(15 downto 12) = x"E") and (r.cur_ins(7 downto 0) = x"9E") then
