@@ -67,74 +67,50 @@ tb1: process
 	end procedure sync_reset;
 
 	alias cpu_r_state is << signal cpu.r : cpu_state_type>>; 
+	alias cpu_rin_state is << signal cpu.rin : cpu_state_type>>;
 	
 begin
 	report "#### START TESTS ####";
 	
 	sync_reset;
 	
-	-- Load I = 5
-	wait until rising_edge(clk);
-	mem_data_in <= x"A0";
-	wait until rising_edge(clk);
-	mem_data_in <= x"05";
-	wait until rising_edge(clk);
-	wait until rising_edge(clk); -- execute
-	
-	-- Load v3 = 8 	0x6308
-	wait until rising_edge(clk);
-	mem_data_in <= x"63";
-	wait until rising_edge(clk);
-	mem_data_in <= x"08";
-	wait until rising_edge(clk);
-	wait until rising_edge(clk); -- execute
-	
-	-- Load v2 = 2 	0x6202
-	wait until rising_edge(clk);
-	mem_data_in <= x"62";
-	wait until rising_edge(clk);
-	mem_data_in <= x"02";
-	wait until rising_edge(clk);
-	wait until rising_edge(clk); -- execute
-	
-	-- Load v1 = 15 0x6115
-	wait until rising_edge(clk);
-	mem_data_in <= x"61";
-	wait until rising_edge(clk);
-	mem_data_in <= x"15";
-	wait until rising_edge(clk);
-	wait until rising_edge(clk); -- execute
-	
-	-- Load v0 = 134 0x6086
-	wait until rising_edge(clk);
-	mem_data_in <= x"60";
-	wait until rising_edge(clk);
-	mem_data_in <= x"86";
-	wait until rising_edge(clk);
-	wait until rising_edge(clk); -- execute
+	wait until rising_edge(clk);   
+	-- I = 5, v3 = 8, v2 = 2, v1 = 15, v0 = 134 (0x86)
+	cpu_rin_state.I <= force to_unsigned(5, cpu_rin_state.I'length);   
+	cpu_rin_state.V(3) <= force to_unsigned(8, cpu_rin_state.V(3)'length);
+	cpu_rin_state.V(2) <= force to_unsigned(2, cpu_rin_state.V(2)'length);
+	cpu_rin_state.V(1) <= force to_unsigned(21, cpu_rin_state.V(1)'length);
+	cpu_rin_state.V(0) <= force to_unsigned(134, cpu_rin_state.V(0)'length);
 	
 	-- Store registers V0 through Vx in memory starting at location I. 0xF355 
-	wait until rising_edge(clk);
 	mem_data_in <= x"F3";
 	wait until rising_edge(clk);
+	cpu_rin_state.I <= release;
+	cpu_rin_state.V(3) <= release;
+	cpu_rin_state.V(2) <= release;
+	cpu_rin_state.V(1) <= release;
+	cpu_rin_state.V(0) <= release;
 	mem_data_in <= x"55";
 	wait until rising_edge(clk); -- execute	
 	wait for 1 ns;
 	assert mem_addr = x"005" report "Failed Mem Addr 0" severity error;
-	assert mem_data_out = x"08" report "Failed Mem Out 0" severity error;
+	assert mem_data_out = x"86" report "Failed Mem Out 0" severity error;
 	wait until rising_edge(clk);
 	wait for 1 ns;
 	assert mem_addr = x"006" report "Failed Mem Addr 1" severity error;
-	assert mem_data_out = x"02" report "Failed Mem Out 1" severity error;
+	assert mem_data_out = x"15" report "Failed Mem Out 1" severity error;
 	wait until rising_edge(clk);
 	wait for 1 ns;
 	assert mem_addr = x"007" report "Failed Mem Addr 2" severity error;
-	assert mem_data_out = x"15" report "Failed Mem Out 2" severity error;
+	assert mem_data_out = x"02" report "Failed Mem Out 2" severity error;
 	wait until rising_edge(clk);
 	wait for 1 ns;
 	assert mem_addr = x"008" report "Failed Mem Addr 3" severity error;
-	assert mem_data_out = x"86" report "Failed Mem Out 3" severity error;
-	wait until rising_edge(clk);
+	assert mem_data_out = x"08" report "Failed Mem Out 3" severity error;
+	wait until rising_edge(clk);	   
+	
+	sim_finished <= true;
+    wait;
 	
 	-- Test JP addr Jump to location nnn  
 	wait until rising_edge(clk);
