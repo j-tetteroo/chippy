@@ -74,6 +74,9 @@ begin
 	
 	sync_reset;
 	
+	-- TODO: full stack test	
+	-- TODO: arithmetic test
+	
 	wait until rising_edge(clk);   
 	-- I = 5, v3 = 8, v2 = 2, v1 = 15, v0 = 134 (0x86)
 	cpu_rin_state.I <= force to_unsigned(5, cpu_rin_state.I'length);   
@@ -106,13 +109,11 @@ begin
 	wait until rising_edge(clk);
 	wait for 1 ns;
 	assert mem_addr = x"008" report "Failed Mem Addr 3" severity error;
-	assert mem_data_out = x"08" report "Failed Mem Out 3" severity error;
-	wait until rising_edge(clk);	   
-	
-	sim_finished <= true;
-    wait;
+	assert mem_data_out = x"08" report "Failed Mem Out 3" severity error;	   
 	
 	-- Test JP addr Jump to location nnn  
+	wait until rising_edge(clk); 
+	wait until rising_edge(clk); 
 	wait until rising_edge(clk);
 	mem_data_in <= x"19";
 	wait until rising_edge(clk);
@@ -120,9 +121,11 @@ begin
 	wait until rising_edge(clk);
 	wait until rising_edge(clk); 
 	wait for 1 ns;
-	assert mem_addr = x"987" report "Failed JP" severity error;
+	assert mem_addr = x"987" report "Failed JP 1" severity error;		 
+	assert cpu_r_state.PC = x"987" report "Failed JP 2" severity error;
 	
-	-- Test CALL addr Call subroutine at nnn
+	-- Test CALL addr Call subroutine at nnn	
+	-- PC = x"987"
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"24";
 	wait until rising_edge(clk);	-- Fetch 2
@@ -130,9 +133,13 @@ begin
 	wait until rising_edge(clk); 	-- Fetch 1
 	wait until rising_edge(clk); 	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"456" report "Failed CALL" severity error;  
+	assert mem_addr = x"456" report "Failed CALL 1" severity error;
+	assert cpu_r_state.SP = 1 report "Failed CALL 2" severity error;   
+	assert cpu_r_state.stack(0) = x"0987" report "Failed CALL 3" severity error;
 	
 	-- Test RET return from subroutine
+	-- Stack(0) = x"0987"
+	-- SP = 1
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"00";
 	wait until rising_edge(clk);	-- Fetch 2
@@ -140,10 +147,11 @@ begin
 	wait until rising_edge(clk); 	-- Fetch 1
 	wait until rising_edge(clk); 	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"987" report "Failed RET" severity error;   
+	assert mem_addr = x"987" report "Failed RET 1" severity error;  
+	assert cpu_r_state.SP = 0 report "Failed RET 2" severity error;
 	
-	-- Test SE Vx, byte Skip next instr if reg Vx = kk 
-	-- V1 = 15, PC = 987
+	-- Test SE Vx, byte Skip next instr if reg Vx = kk (inc PC 4 bytes)
+	-- V1 = 0x15, PC = 987
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"31";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -151,9 +159,10 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"989" report "Failed SE 1" severity error;
+	assert mem_addr = x"98B" report "Failed SE 1" severity error;
+	assert cpu_r_state.PC = x"98B" report "Failed SE 2" severity error;
 	
-	-- V1 = 15, PC = 989
+	-- V1 = 0x15, PC = 98B, inc PC 2 bytes
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"31";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -161,10 +170,11 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"98A" report "Failed SE 2" severity error; 
+	assert mem_addr = x"98D" report "Failed SE 3" severity error;  
+	assert cpu_r_state.PC = x"98D" report "Failed SE 4" severity error; 
 	
-	-- Test SNE Vx, byte Skip next instr if reg Vx != kk
-	-- V1 = 15, PC = 98A
+	-- Test SNE Vx, byte Skip next instr if reg Vx != kk (inc PC 4 bytes)
+	-- V1 = 0x15, PC = 98D
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"41";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -172,9 +182,10 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"98B" report "Failed SNE 1" severity error;
+	assert mem_addr = x"98F" report "Failed SNE 1" severity error;
+	assert cpu_r_state.PC = x"98F" report "Failed SNE 2" severity error;
 	
-	-- V1 = 15, PC = 98B
+	-- V1 = 15, PC = 98B  (inc 2 bytes)
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"41";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -182,26 +193,24 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"98D" report "Failed SNE 2" severity error; 
+	assert mem_addr = x"993" report "Failed SNE 3" severity error;
+	assert cpu_r_state.PC = x"993" report "Failed SNE 4" severity error;
 	
 	-- Test SE Vx, Vy Skip next instr if Vx = Vy
-	-- Load v4 = 0x15	0x6415
-	wait until rising_edge(clk);
-	mem_data_in <= x"64";
-	wait until rising_edge(clk);
-	mem_data_in <= x"15";
-	wait until rising_edge(clk);
-	wait until rising_edge(clk); -- execute	 
+	-- Load v4 = 0x15 
+	cpu_rin_state.V(4) <= force to_unsigned(21, cpu_rin_state.V(4)'length);
 	
-	-- V1 = 0x15, V4 = 0x15, PC = 0x98E
+	-- V1 = 0x15, V4 = 0x15, PC = 0x993
 	wait until rising_edge(clk);	-- Fetch 0
+	cpu_rin_state.V(4) <= release;
 	mem_data_in <= x"51";	
 	wait until rising_edge(clk);	-- Fetch 2
-	mem_data_in <= x"40";			-- Compare with wrong value
+	mem_data_in <= x"40";
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"990" report "Failed SE Vx=Vy 1" severity error; 
+	assert mem_addr = x"997" report "Failed SE Vx=Vy 1" severity error; 
+	assert cpu_r_state.PC = x"997" report "Failed SE Vx=Vy 2" severity error;
 	
 	-- V1 = 0x15, V3 = 0x08, PC = 0x990
 	wait until rising_edge(clk);	-- Fetch 0
@@ -211,17 +220,19 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"991" report "Failed SE Vx=Vy 2" severity error; 
-	
+	assert mem_addr = x"999" report "Failed SE Vx=Vy 3" severity error;
+	assert cpu_r_state.PC = x"999" report "Failed SE Vx=Vy 4" severity error;
+
 	-- Test LD Vx, byte Set Vx = kk
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"6A";
 	wait until rising_edge(clk);	-- Fetch 2
 	mem_data_in <= x"BB";
 	wait until rising_edge(clk);	-- Fetch 1
-	wait until rising_edge(clk);	-- Execute
-	
-	-- TODO: Cannot assert register yet	   
+	wait until rising_edge(clk);	-- Execute	
+	wait for 1 ns;
+	assert cpu_r_state.V(10) = x"BB" report "Failed LD Vx=kk" severity error;
+
 	
 	-- Test LD Vx, Vy Set Vx = Vy
 	wait until rising_edge(clk);	-- Fetch 0
@@ -229,12 +240,13 @@ begin
 	wait until rising_edge(clk);	-- Fetch 2
 	mem_data_in <= x"A0";
 	wait until rising_edge(clk);	-- Fetch 1
-	wait until rising_edge(clk);	-- Execute
+	wait until rising_edge(clk);	-- Execute	 
+	wait for 1 ns;
+	assert cpu_r_state.V(12) = x"BB" report "Failed LD Vx = Vy" severity error;
 	
-	-- TODO: assert VC == VA == 0xBB
 	
 	-- Test SNE Vx, Vy Skip next instr if Vx != Vy
-	-- V1 = 0x15, V4 = 0x15, PC = 0x993
+	-- V1 = 0x15, V4 = 0x15, PC = 0x99D
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"91";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -242,9 +254,10 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"994" report "Failed SNE Vx!=Vy 1" severity error; -- Equal so dont skip
+	assert mem_addr = x"99F" report "Failed SNE Vx!=Vy 1" severity error; -- Equal so dont skip
+	assert cpu_r_state.PC = x"99F" report "Failed SNE Vx!=Vy 2" severity error;
 	
-	-- V1 = 0x15, V3 = 0x08, PC = 0x994
+	-- V1 = 0x15, V3 = 0x08, PC = 0x99B
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"91";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -252,7 +265,10 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"996" report "Failed SNE Vx!=Vy 2" severity error;	-- Unequal so skip
+	assert mem_addr = x"9A3" report "Failed SNE Vx!=Vy 3" severity error;	-- Unequal so skip
+	assert cpu_r_state.PC = x"9A3" report "Failed SNE Vx!=Vy 4" severity error;
+	sim_finished <= true;
+    wait;
 	
 	-- Test LD I, addr Set reg I = nnn
 	wait until rising_edge(clk);	-- Fetch 0
