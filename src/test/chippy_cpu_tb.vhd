@@ -257,7 +257,7 @@ begin
 	assert mem_addr = x"99F" report "Failed SNE Vx!=Vy 1" severity error; -- Equal so dont skip
 	assert cpu_r_state.PC = x"99F" report "Failed SNE Vx!=Vy 2" severity error;
 	
-	-- V1 = 0x15, V3 = 0x08, PC = 0x99B
+	-- V1 = 0x15, V3 = 0x08, PC = 0x99F
 	wait until rising_edge(clk);	-- Fetch 0
 	mem_data_in <= x"91";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -267,8 +267,6 @@ begin
 	wait for 1 ns;
 	assert mem_addr = x"9A3" report "Failed SNE Vx!=Vy 3" severity error;	-- Unequal so skip
 	assert cpu_r_state.PC = x"9A3" report "Failed SNE Vx!=Vy 4" severity error;
-	sim_finished <= true;
-    wait;
 	
 	-- Test LD I, addr Set reg I = nnn
 	wait until rising_edge(clk);	-- Fetch 0
@@ -277,9 +275,8 @@ begin
 	mem_data_in <= x"23";			
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
-	wait for 1 ns; 
-	
-	-- TODO: assert I == 0x123
+	wait for 1 ns; 	  
+	assert cpu_r_state.I = x"123" report "Failed LD I = nnn" severity error;
 	
 	-- Test JP V0, addr Jump to location nnn + V0
 	-- V0 = 0x86
@@ -289,9 +286,9 @@ begin
 	mem_data_in <= x"9B";			
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
-	wait for 1 ns; 	
-	
-	assert mem_addr = x"321" report "Failed JP V0+nnn" severity error;
+	wait for 1 ns;
+	assert mem_addr = x"321" report "Failed JP V0+nnn 1" severity error;
+	assert cpu_r_state.PC = x"321" report "Failed JP V0+nnn 2" severity error;
 	
 	-- Test SKP Vx, Skip next instruction if key = Vx is pressed  
 	-- V3 = 8, PC = 0x321
@@ -304,7 +301,8 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"323" report "Failed SKP 1" severity error;
+	assert mem_addr = x"325" report "Failed SKP 1" severity error;
+	assert cpu_r_state.PC = x"325" report "Failed SKP 2" severity error;
 	
 	wait until rising_edge(clk);	-- Fetch 0
 	keypad_in <= x"8";
@@ -315,10 +313,11 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"324" report "Failed SKP 2" severity error;
+	assert mem_addr = x"327" report "Failed SKP 3" severity error;
+	assert cpu_r_state.PC = x"327" report "Failed SKP 4" severity error;
 	
 	wait until rising_edge(clk);	-- Fetch 0
-	keypad_in <= x"9";	 			-- Different key pressed
+	keypad_in <= x"9";	 			-- Different key pressed, don't skip
 	keypad_pressed <= '1';	
 	mem_data_in <= x"E3";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -326,7 +325,10 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert mem_addr = x"325" report "Failed SKP 3" severity error;
+	assert mem_addr = x"329" report "Failed SKP 5" severity error;
+	assert cpu_r_state.PC = x"329" report "Failed SKP 6" severity error;
+	sim_finished <= true;
+    wait;
 	
 	-- Test SKNP Vx, Skip next instruction if key = Vx is not pressed
 	wait until rising_edge(clk);	-- Fetch 0
