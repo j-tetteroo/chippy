@@ -327,12 +327,11 @@ begin
 	wait for 1 ns;
 	assert mem_addr = x"329" report "Failed SKP 5" severity error;
 	assert cpu_r_state.PC = x"329" report "Failed SKP 6" severity error;
-	sim_finished <= true;
-    wait;
+
 	
-	-- Test SKNP Vx, Skip next instruction if key = Vx is not pressed
+	-- Test SKNP Vx, Skip next instruction if key = Vx is NOT pressed
 	wait until rising_edge(clk);	-- Fetch 0
-	keypad_in <= x"2";	 			-- Key = V2
+	keypad_in <= x"2";	 			-- Key = V2 so don't skip
 	keypad_pressed <= '1';	
 	mem_data_in <= x"E2";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -340,10 +339,11 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;	
-	assert mem_addr = x"326" report "Failed SKNP 1" severity error;	
+	assert mem_addr = x"32B" report "Failed SKNP 1" severity error;
+	assert cpu_r_state.PC = x"32B" report "Failed SKNP 2" severity error;
 	
 	wait until rising_edge(clk);	-- Fetch 0
-	keypad_in <= x"3";	 			-- Different key pressed
+	keypad_in <= x"3";	 			-- Different key pressed, so skip
 	keypad_pressed <= '1';	
 	mem_data_in <= x"E2";	
 	wait until rising_edge(clk);	-- Fetch 2
@@ -351,18 +351,20 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;	
-	assert mem_addr = x"328" report "Failed SKNP 2" severity error;	
+	assert mem_addr = x"32F" report "Failed SKNP 3" severity error;
+	assert cpu_r_state.PC = x"32F" report "Failed SKNP 4" severity error;
 	
 	wait until rising_edge(clk);	-- Fetch 0
 	keypad_in <= x"2";	 			-- Key = V2
-	keypad_pressed <= '0';			-- No key press
+	keypad_pressed <= '0';			-- No key press, so skip
 	mem_data_in <= x"E2";	
 	wait until rising_edge(clk);	-- Fetch 2
 	mem_data_in <= x"A1";			
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;	
-	assert mem_addr = x"32A" report "Failed SKNP 3" severity error;	
+	assert mem_addr = x"333" report "Failed SKNP 5" severity error;
+	assert cpu_r_state.PC = x"333" report "Failed SKNP 6" severity error;
 	
 	-- Test LD DT, Vx, Set delay timer = Vx
 	wait until rising_edge(clk);	-- Fetch 0
@@ -372,7 +374,7 @@ begin
 	wait until rising_edge(clk);	-- Fetch 1
 	wait until rising_edge(clk);	-- Execute
 	wait for 1 ns;
-	assert cpu_r_state.delay = x"15" report "Failed LD DT,Vx" severity error;	
+	assert cpu_r_state.delay = x"15" report "Failed LD DT,Vx" severity error;
 	
 	-- Test LD Vx, DT, Vx = delay timer value
 	wait until rising_edge(clk);	-- Fetch 0
@@ -420,7 +422,8 @@ begin
 	assert mem_data_out = x"04" report "Failed LD B, Vx 3" severity error;	
 	wait until rising_edge(clk);	-- Execute 1
 	wait for 1 ns;
-	assert mem_we = '0' report "Failed LD B, Vx 4" severity error;
+	assert mem_we = '0' report "Failed LD B, Vx 4" severity error;	   
+	
 	
 	report "#### TESTS COMPLETED ####";
     sim_finished <= true;
