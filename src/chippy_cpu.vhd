@@ -39,7 +39,8 @@ begin
 		port map(addr => bcd_addr,
 		data => bcd_val);	
 		
-	-- TODO: Check all memory write instructions to see if they set WE = 1
+	-- TODO: Check all memory write instructions to see if they set WE = 1		   
+	-- TODO: fix the update of mem_addr on rising edge
 	
 	combinatorial : process(reset, r)
 		variable v : cpu_state_type; 
@@ -56,17 +57,23 @@ begin
 			when FETCH =>
 				-- Fetch next instruction from memory (16-bit word)
 				case to_integer(r.cycle_counter) is
-					when 0 =>
-						v.cycle_counter := to_unsigned(2, v.cycle_counter'length);
-						mem_addr <= std_logic_vector(r.PC(11 downto 0));
+					when 0 => 
+						-- Set cycle counter and load mem addr
+						v.mem_addr := std_logic_vector(r.PC(11 downto 0));
+						v.cycle_counter := to_unsigned(1, v.cycle_counter'length);
 					when 1 =>
+						-- Wait for first word, set next mem addr
+						v.mem_addr := std_logic_vector(r.PC(11 downto 0) + 1);
+						v.cycle_counter := to_unsigned(2, v.cycle_counter'length);
+					when 2 =>	
+						-- Load first word
+						v.cur_ins(15 downto 8) := mem_data_in;
+						v.cycle_counter := to_unsigned(3, v.cycle_counter'length);
+					when 3 => 					 
+						-- Load second word, done
 						v.cur_ins(7 downto 0) := mem_data_in;
 						v.state := EXECUTE;
-						v.cycle_counter := r.cycle_counter - 1;
-					when 2 =>
-						v.cur_ins(15 downto 8) := mem_data_in;
-						mem_addr <= std_logic_vector(r.PC(11 downto 0) + 1);
-						v.cycle_counter := r.cycle_counter - 1;
+						v.cycle_counter := to_unsigned(0, v.cycle_counter'length);
 					when others =>
 				end case;
 			when EXECUTE =>
@@ -258,26 +265,26 @@ begin
 					-- LD B, Vx, Set BCD representation of Vx in mem I, I+1 and I+2
 					if (r.cycle_counter = 0) then
 						v.cycle_counter := to_unsigned(4, v.cycle_counter'length);
-						bcd_addr <= std_logic_vector(r.V(idx_x));
+						bcd_addr <= std_logic_vector(r.V(idx_x));	-- Set BCD address to LUT, read in next cycle
 					elsif (r.cycle_counter = 1) then
-						mem_we <= '0';
+						v.mem_we := '0';
 						v.PC := r.PC + 2;
 						v.cycle_counter := r.cycle_counter - 1;
 						v.state := FETCH;
 					elsif (r.cycle_counter = 2) then
-						mem_addr <= std_logic_vector(r.I(11 downto 0) + 2);
-						mem_data_out <= ("0000" & bcd_val(3 downto 0));
-						mem_we <= '1';
+						v.mem_addr := std_logic_vector(r.I(11 downto 0) + 2);
+						v.mem_data_out := ("0000" & bcd_val(3 downto 0));
+						v.mem_we := '1';
 						v.cycle_counter := r.cycle_counter - 1;	
 					elsif (r.cycle_counter = 3) then
-						mem_addr <= std_logic_vector(r.I(11 downto 0) + 1);
-						mem_data_out <= ("0000" & bcd_val(7 downto 4));
-						mem_we <= '1';
+						v.mem_addr := std_logic_vector(r.I(11 downto 0) + 1);
+						v.mem_data_out := ("0000" & bcd_val(7 downto 4));
+						v.mem_we := '1';
 						v.cycle_counter := r.cycle_counter - 1;	
 					elsif (r.cycle_counter = 4) then 
-						mem_addr <= std_logic_vector(r.I(11 downto 0));
-						mem_data_out <= ("0000" & bcd_val(11 downto 8));
-						mem_we <= '1';
+						v.mem_addr := std_logic_vector(r.I(11 downto 0));
+						v.mem_data_out := ("0000" & bcd_val(11 downto 8));
+						v.mem_we := '1';
 						v.cycle_counter := r.cycle_counter - 1;	
 					end if;	
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"55") then			
@@ -286,35 +293,42 @@ begin
 					-- TODO: make sure you set write enable
 					if (r.cycle_counter = 0) then
 						v.cycle_counter := to_unsigned(idx_x + 1, v.cycle_counter'length); 
-						mem_addr <= std_logic_vector(v.I(11 downto 0));
-						mem_data_out <= std_logic_vector(r.V(0));
-						mem_we <= '1';
+						v.mem_addr := std_logic_vector(v.I(11 downto 0));
+						v.mem_data_out := std_logic_vector(r.V(0));
+						v.mem_we := '1';
 					elsif (r.cycle_counter = 1) then  
-						mem_we <= '0';
+						v.mem_we := '0';
 						v.cycle_counter := r.cycle_counter - 1;
 						v.PC := r.PC + 2;
 						v.state := FETCH;
 					else
-						mem_addr <= std_logic_vector(v.I(11 downto 0) + idx_x - r.cycle_counter + 2);
-						mem_data_out <= std_logic_vector(r.V(to_integer(idx_x - r.cycle_counter + 2)));
-						mem_we <= '1';
+						v.mem_addr := std_logic_vector(v.I(11 downto 0) + idx_x - r.cycle_counter + 2);
+						v.mem_data_out := std_logic_vector(r.V(to_integer(idx_x - r.cycle_counter + 2)));
+						v.mem_we := '1';
 						v.cycle_counter := r.cycle_counter - 1;		
 					end if;
 				elsif (r.cur_ins(15 downto 12) = x"F") and (r.cur_ins(7 downto 0) = x"65") then
 					-- LD Vx, [I], Read registers V0 through Vx from memory starting at I	 
 					if (r.cycle_counter = 0) then
-						v.cycle_counter := to_unsigned(idx_x + 1, v.cycle_counter'length);
-						mem_addr <= std_logic_vector(v.I(11 downto 0));
+						v.cycle_counter := to_unsigned(1, v.cycle_counter'length);
+						v.mem_addr := std_logic_vector(v.I(11 downto 0));	   
 					elsif (r.cycle_counter = 1) then  
-						v.V(idx_x) := unsigned(mem_data_in);
-						v.cycle_counter := r.cycle_counter - 1;
+						v.cycle_counter := r.cycle_counter + 1;
+						v.mem_addr := std_logic_vector(v.I(11 downto 0) + 1); 
+					elsif (r.cycle_counter = idx_x + 3) then	
+						v.cycle_counter := to_unsigned(0, v.cycle_counter'length);
 						v.PC := r.PC + 2;
-						v.state := FETCH;
-					else
-						mem_addr <= std_logic_vector(v.I(11 downto 0) + idx_x - r.cycle_counter + 2); 
-						v.V(to_integer(idx_x - r.cycle_counter + 1)) := unsigned(mem_data_in);
-						v.cycle_counter := r.cycle_counter - 1;		
+						v.state := FETCH; 
+					else  
+						v.mem_addr := std_logic_vector(v.I(11 downto 0) + r.cycle_counter); 
+						v.V(to_integer(r.cycle_counter - 2)) := unsigned(mem_data_in);
+						v.cycle_counter := r.cycle_counter + 1;		
 					end if;					
+					-- Memory sequence for reg V0
+					-- Cycle 0: Set address from instruction word
+					-- Cycle 1: Address has become visible to memory unit
+					-- Cycle 2: Data has become visible to CPU
+					-- Cycle 3: Data has been loaded in register V0
 				end if;
 				when others =>
 		end case;
@@ -327,11 +341,17 @@ begin
 			v.delay := x"00";
 			v.sound := x"00";
 			v.state := FETCH;  
-			v.cycle_counter := to_unsigned(0, v.cycle_counter'length);
+			v.cycle_counter := to_unsigned(0, v.cycle_counter'length);	
+			for i in v.V'range loop
+  				v.V(i) := x"00";
+			end loop; 
 			-- TODO: Fully initialize state
 		end if;	 	   
 		
-		rin <= v;
+		rin <= v;	 
+		mem_addr <= r.mem_addr;
+		mem_we <= r.mem_we;
+		mem_data_out <= r.mem_data_out;
 	end process;
 	
 	synchronous : process(clk)

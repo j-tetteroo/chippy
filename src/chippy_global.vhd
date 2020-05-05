@@ -29,8 +29,8 @@ package chippy_global is
 		
 		cycle_counter : unsigned(11 downto 0);
 		
-		mem_write_en : std_logic;
-		mem_addr : std_logic_vector(7 downto 0);
+		mem_we : std_logic;
+		mem_addr : std_logic_vector(11 downto 0);
 		mem_data_in : std_logic_vector(7 downto 0);
 		mem_data_out : std_logic_vector(7 downto 0);
 		
@@ -38,7 +38,8 @@ package chippy_global is
 		alu_A_in : unsigned(7 downto 0);
 		alu_B_in : unsigned(7 downto 0);
 		alu_out : unsigned(15 downto 0);
-		alu_carry : std_logic;
+		alu_carry : std_logic; 
+		
 		
 	end record;
 
