@@ -7,7 +7,18 @@ package chippy_global is
 	
 	type t_regfile is array (15 downto 0) of unsigned(7 downto 0);
 	type t_stack is array (15 downto 0) of unsigned(15 downto 0);
-	type t_cpu_state is (FETCH, EXECUTE);
+	type t_cpu_state is (FETCH, EXECUTE);	
+	type t_fbuf_state is (FWAIT, INIT, READ, READ_1, CALCULATE, WRITE, WRITE_1);  
+	
+	-- Framebuffer state
+	type fbuf_state_type is record
+		state : t_fbuf_state;
+		
+		addr : std_logic_vector(4 downto 0);
+		linebuf : std_logic_vector(71 downto 0);
+		
+		
+	end record;
 	
 	-- CPU state
 	type cpu_state_type is record

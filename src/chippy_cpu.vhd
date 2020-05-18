@@ -11,10 +11,17 @@ entity chippy_cpu is
 	port (clk : in std_logic;
 	reset : in std_logic;
 	
+	-- Main memory
 	mem_addr : out std_logic_vector(11 downto 0);
 	mem_we : out std_logic;
 	mem_data_in : in std_logic_vector(7 downto 0);
 	mem_data_out : out std_logic_vector(7 downto 0);
+	
+	-- Framebuffer (connects to 2 framebuffer memories, so that we can xor with current buffer)
+	frame_addr : out std_logic_vector(7 downto 0);
+	frame_we : out std_logic;
+	frame_data_in : in std_logic_vector(7 downto 0);
+	frame_data_out : out std_logic_vector(7 downto 0);
 	
 	keypad_in : in std_logic_vector(3 downto 0); 
 	keypad_pressed : in std_logic);
@@ -214,6 +221,15 @@ begin
 					v.state := FETCH;
 				elsif (r.cur_ins(15 downto 12) = x"D") then
 					-- DRW Vx, Vy, nibble Display n-byte sprite at mem I at (Vx, Vy), VF = collision
+					-- 1. Set address for sprite byte 0, internal framebuffer byte 0
+					-- 2. Read sprite byte 0 from internal memory, read framebuffer byte 0 from internal framebuffer
+					-- 3. Set write address for external and internal framebuffer WE = 1, set data_out = sprite XOR framebuffer
+					-- 4. Repeat for n bytes
+					-- Make sure to take wrap around in account
+					if (r.cycle_counter = 0) then
+						
+					else
+					end if;
 				elsif (r.cur_ins(15 downto 12) = x"E") and (r.cur_ins(7 downto 0) = x"9E") then
 					-- SKP Vx, Skip next instruction if key = Vx is pressed
 					if ((unsigned(keypad_in) = r.V(idx_x)) and (keypad_pressed = '1')) then
