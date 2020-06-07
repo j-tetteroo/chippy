@@ -22,6 +22,8 @@ architecture behavioural of vga_test is
 	signal lock : std_logic;
 	signal h_counter : integer range 0 to 800;
 	signal v_counter : integer range 0 to 525;
+	type mem_type is array (2047 downto 0) of std_logic;
+	signal mem : mem_type;
 	
 	type vga_reg_type is record
 		h_counter : integer range 0 to 800;
@@ -60,7 +62,7 @@ begin
 			-- v.r := '1'; -- for test purposes
 			v.h_counter := v.h_counter + 1;
 		elsif (v.h_counter >= 656) and (v.h_counter < 752) then
-			v.h_sync := '0';
+			v.h_sync := mem(315);
 			v.h_counter := v.h_counter + 1;
 		elsif (v.h_counter >= 799) then
 			v.v_counter := v.v_counter + 1;

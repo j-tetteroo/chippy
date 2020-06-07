@@ -1,7 +1,7 @@
 library IEEE;
 use IEEE.std_logic_1164.all;	   
 --use IEEE.NUMERIC_STD.ALL;
-use IEEE.std_logic_unsigned.all;  
+use IEEE.std_logic_unsigned.all;	-- This is vendor specific code so don't blame me 
 
 
 entity chippy_memory is

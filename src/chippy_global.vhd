@@ -15,8 +15,12 @@ package chippy_global is
 		state : t_fbuf_state;
 		
 		addr : std_logic_vector(4 downto 0);
-		linebuf : std_logic_vector(71 downto 0);
+		linebuf : std_logic_vector(71 downto 0); 
 		
+		we : std_logic;	 		
+		data : std_logic_vector(63 downto 0); 
+		
+		vf : std_logic;
 		
 	end record;
 	
