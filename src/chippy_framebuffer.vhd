@@ -59,7 +59,7 @@ begin
 				stall <= '1';
 				offset := 71 - to_integer(column);
 				v.linebuf(offset downto offset-7) := r.linebuf(offset downto offset-7) XOR sprite;
-				if (r.linebuf AND NOT(v.linebuf)) /= x"000000000000000000" then
+				if (r.linebuf AND NOT(v.linebuf)) /= x"000000000000000000" then	-- Check if we overwrite a bit 
 					v.vf := '1';
 				else
 					v.vf := '0';

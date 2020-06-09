@@ -4,22 +4,29 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.vga_pll;
 
-entity vga_test is
-	port (clk12 : in std_logic;
+-- Run the framebuffer memory at 25 mhz
+
+entity chippy_vgacontroller is
+	port (clk12 : in std_logic;	-- 12 mhz
 	reset : in std_logic;
+	
+	rdata_in : in std_logic_vector(63 downto 0); -- Framebuffer input scanline
+	raddr : out std_logic_vector(4 downto 0); -- Framebuffer address		  
+	
 	h_sync : out std_logic;
 	v_sync : out std_logic;
 	r : out std_logic;
 	g : out std_logic;
 	b : out std_logic;
 	lock_pll : out std_logic;
-	clk25_out : out std_logic);
-end vga_test;
+	clk25_out : out std_logic);		
+	
+end chippy_vgacontroller; 
 
-architecture behavioural of vga_test is  
+architecture behavioural of chippy_vgacontroller is  
 
 	signal clk25 : std_logic; 
-	signal lock : std_logic;
+	signal lock : std_logic;	-- PLL lock signal
 	signal h_counter : integer range 0 to 800;
 	signal v_counter : integer range 0 to 525;
 	type mem_type is array (2047 downto 0) of std_logic;
@@ -40,6 +47,7 @@ architecture behavioural of vga_test is
 
 begin	
 	
+	-- PLL instance 25 MHz
 	vga_pll_inst: entity vga_pll
 	port map(
 		REFERENCECLK => clk12,
@@ -50,6 +58,8 @@ begin
 		  
 	combinatorial : process(reset, reg, lock)
 		variable v : vga_reg_type;
+		variable v_offset : integer;
+		variable h_offset : integer;
 	begin
 		v := reg;
 		v.r := '0';
@@ -59,7 +69,6 @@ begin
 		v.v_sync := '1';
 		
 		if (v.h_counter < 640) then
-			-- v.r := '1'; -- for test purposes
 			v.h_counter := v.h_counter + 1;
 		elsif (v.h_counter >= 656) and (v.h_counter < 752) then
 			v.h_sync := '0';
@@ -72,13 +81,20 @@ begin
 		end if;
 		
 		if (v.v_counter < 480) and (v.h_counter < 640) then
-			-- v.g := '1'; -- for test purposes
-			if (v.v_counter < 160) then
-				v.r := '1';
-			elsif (v.v_counter < 320) then
-				v.g := '1';
-			else
-				v.b := '1';
+			-- Visible area
+			if (v.v_counter > 80) and (v.v_counter < 400) then
+				v_offset := v.v_counter / 10;
+				h_offset := ((v.h_counter / 10) + (v_offset mod 2)) mod 2;
+				
+				if h_offset = 1 then
+					v.r := '1';
+					v.g := '1';
+					v.b := '1';
+				else
+					v.r := '0';
+					v.g := '0';
+					v.b := '0';
+				end if;
 			end if;
 		elsif (v.v_counter >= 490) and (v.v_counter < 492) then
 			v.v_sync := '0';
