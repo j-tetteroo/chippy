@@ -78,24 +78,45 @@ begin
 			v.h_counter := 0;
 		else
 			v.h_counter := v.h_counter + 1;
-		end if;
+		end if;		
+		
+		-- Fetch scanline from framebuffer memory
+		if (v.v_counter >= 79) and (v.v_counter < 400) then
+			raddr <= std_logic_vector(to_unsigned((v.v_counter-79) / 10, raddr'length));
+		end if;	
+		
+		-- Draw input scanline
+		if (v.v_counter > 79) and (v.v_counter <= 400) and (v.h_counter < 640) then
+			if rdata_in(v.h_counter / 10) = '1' then
+				v.r := '1';
+				v.g := '1';
+				v.b := '1';	
+			else
+				v.r := '0';
+				v.g := '0';
+				v.b := '0';	
+			end if;
+		end if;		
+		
 		
 		if (v.v_counter < 480) and (v.h_counter < 640) then
-			-- Visible area
-			if (v.v_counter > 80) and (v.v_counter < 400) then
-				v_offset := v.v_counter / 10;
-				h_offset := ((v.h_counter / 10) + (v_offset mod 2)) mod 2;
-				
-				if h_offset = 1 then
-					v.r := '1';
-					v.g := '1';
-					v.b := '1';
-				else
-					v.r := '0';
-					v.g := '0';
-					v.b := '0';
-				end if;
-			end if;
+			-- Visible area	
+			
+--			if (v.v_counter > 80) and (v.v_counter < 400) then
+--				v_offset := v.v_counter / 10;
+--				h_offset := ((v.h_counter / 10) + (v_offset mod 2)) mod 2;
+--				
+--				if h_offset = 1 then
+--					v.r := '1';
+--					v.g := '1';
+--					v.b := '1';
+--				else
+--					v.r := '0';
+--					v.g := '0';
+--					v.b := '0';
+--				end if;
+--			end if;
+			
 		elsif (v.v_counter >= 490) and (v.v_counter < 492) then
 			v.v_sync := '0';
 		elsif (v.v_counter >= 525) then
