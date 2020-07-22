@@ -87,7 +87,7 @@ begin
 				if r.clk_count = 0 then	
 					v.bit_count := "0000";
 					v.clk_count := to_unsigned(BAUDCNT, v.clk_count'length);  
-					v.rx_buffer := x"41";	-- OVERRIDE
+					--v.rx_buffer := x"41";	-- OVERRIDE
 					v.state := TX;
 				else 
 					v.clk_count := r.clk_count - 1;
